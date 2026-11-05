@@ -1,0 +1,25 @@
+{
+  "site_id": "site_a",
+  "site_type": "signalized_intersection",
+  "duration_min": 30,
+  "ttc": {
+    "n_pairs_positive": 59,
+    "n_critical_le_2s": 21,
+    "critical_rate": 0.356,
+    "range_s": [
+      0.2,
+      14.33
+    ],
+    "mean_s": 2.64
+  },
+  "pet": {
+    "n_pairs": 125,
+    "n_critical_le_2s": 21,
+    "critical_rate": 0.168,
+    "range_s": [
+      0.8,
+      9.9
+    ],
+    "mean_s": 3.69
+  }
+}

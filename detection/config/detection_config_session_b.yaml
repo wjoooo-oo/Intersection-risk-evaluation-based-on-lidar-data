@@ -1,0 +1,138 @@
+# detection + tracking for session_b (large / sparse far range)
+
+lidar_topic: /lidar/points
+lidar_frame: lidar
+
+roi:
+  type: polygon
+  frame: lidar
+  erode_margin_m: 5.0
+  points:
+  - - -10.660558516997554
+    - -4.804402066380604
+  - - -9.154788426144876
+    - -14.173638187241664
+  - - 0.7163710583337206
+    - -20.865949702142416
+  - - -9.489404001889937
+    - -34.083264944071416
+  - - -27.558645092121964
+    - -8.987096763193577
+  - - -54.16058336385245
+    - -5.640941005743201
+  - - -97.99522378645241
+    - -4.46978649063557
+  - - -122.92408417945772
+    - -4.97170985425312
+  - - -121.41831408860506
+    - 50.0725523558056
+  - - -87.12021757473869
+    - 51.74563023453079
+  - - -96.9913770592173
+    - 73.8302582337033
+  - - -66.70866745429137
+    - 83.53410993030938
+  - - -41.77980706128608
+    - 58.77255732517658
+  - - 9.4163760277047
+    - 51.57832244665828
+  - - 35.51639093581764
+    - 51.57832244665828
+  - - 45.387550420296265
+    - 51.57832244665828
+  - - 50.741399632216854
+    - 10.420606630018625
+  - - 26.481770390701627
+    - 10.587914417891142
+  - - 9.249068239832184
+    - 10.587914417891142
+
+preprocess:
+  range_split_m: 40.0
+  voxel_near_m: 0.08
+  voxel_far_m: 0.12
+  skip_far_downsample: true
+  z_min: -2.5
+  z_max: 4.0
+  ground_removal:
+    method: grid_local_min
+    cell: 1.0
+    delta: 0.28
+    z_global_max: 3.5
+
+clustering:
+  method: dbscan
+  range_split_m: 40.0
+  eps_near: 1.0
+  eps_far: 2.4
+  min_samples_near: 3
+  min_samples_far: 2
+  min_cluster_near: 6
+  min_cluster_far: 4
+  max_cluster_points: 8000
+  bbox_method: obb
+  nms_iou: 0.3
+
+classification:
+  promote_vehicle_like_unknown: true
+  promote_min_range_m: 20.0
+  promote_min_height_m: 0.45
+  vehicle:
+    min_length: 1.0
+    max_length: 10.0
+    min_width: 0.5
+    max_width: 4.0
+    min_height: 0.65
+    max_height: 4.5
+    min_height_to_length: 0.16
+    min_points: 5
+  vehicle_far:
+    range_min_m: 40.0
+    min_length: 0.8
+    max_length: 12.0
+    min_width: 0.4
+    max_width: 4.5
+    min_height: 0.4
+    max_height: 4.5
+    min_height_to_length: 0.1
+    min_points: 3
+  pedestrian:
+    min_length: 0.2
+    max_length: 1.2
+    min_width: 0.2
+    max_width: 1.2
+    min_height: 0.6
+    max_height: 2.3
+    min_points: 5
+
+background_filter:
+  resolution: 1.0
+  history_frames: 80
+  static_threshold: 0.85
+  warmup_frames: 30
+  exempt_classes:
+    - vehicle
+    - pedestrian
+
+tracking:
+  max_age: 15
+  min_hits: 2
+  min_track_age: 2
+  distance_threshold: 6.0
+  process_noise_pos: 0.5
+  process_noise_vel: 1.0
+  measurement_noise: 0.4
+  max_trajectory_length: 100
+  size_ema_alpha: 0.35
+  size_ema_min_points: 6
+  min_track_speed: 0.0
+  speed_window: 5
+  nms_iou: 0.3
+
+visualization:
+  publish_raw_cloud: true
+  publish_detection_markers: false
+  roi_marker_color: [0.0, 1.0, 1.0, 0.8]
+  vehicle_color: [0.0, 1.0, 0.0, 0.6]
+  pedestrian_color: [1.0, 1.0, 0.0, 0.6]
+  unknown_color: [0.5, 0.5, 0.5, 0.4]

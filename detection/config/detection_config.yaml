@@ -1,0 +1,121 @@
+# intersection_lidar_detection configuration
+# Loaded by detection_node via config_path (see detection.launch.py).
+#
+# Per-frame pipeline (detection_node._lidar_callback):
+#   1. PointCloud2 → numpy          (lidar_topic, lidar_frame)
+#   2. ROI crop                     (roi)
+#   3. Height filter                (preprocess z_min/z_max)
+#   4. Voxel downsample             (preprocess)
+#   5. Ground removal               (preprocess.ground_removal)
+#   5b. Static point filter         (optional; not in this yaml by default)
+#   6. DETECTION: DBSCAN cluster → OBB bbox → vehicle/ped classify  (clustering, classification)
+#   7. Background filter            (background_filter) — drop lingering static detections
+#   8. Tracking                     (tracking) — Kalman + Hungarian, publish track markers
+#   9. Track NMS, class promote, speed-based static drop
+#
+# "Detection" (step 6) = per-frame object hypotheses before tracking.
+# Tracking smooths boxes over time and is what RViz shows by default.
+
+lidar_topic: "/lidar/points"
+lidar_frame: "lidar"
+
+roi:
+  type: "polygon"
+  frame: "lidar"
+  # Full intersection polygon, matches config/roi.yaml (picked from bag session_a)
+  points:
+    - [13.847304394794811, 25.05452989593035]
+    - [9.560786348190781, 16.32562041920942]
+    - [-3.4546411751341637, 19.521024781223332]
+    - [-6.727982228904509, 8.064331093027121]
+    - [4.105217925240204, 0.582408684409188]
+    - [5.118394918073882, -9.315551168658288]
+    - [3.7934711582144587, -13.991752674044498]
+    - [18.367632516668138, -18.12239733713565]
+    - [22.26446710448998, -5.964273423131505]
+    - [29.434642746082176, -6.431893573670127]
+    - [35.66957808659711, 7.83052101775781]
+    - [26.70685853460688, 14.844823275837122]
+    - [29.122895979056423, 23.028175910262988]
+
+preprocess:
+  voxel_size: 0.15
+  z_min: -3.0
+  z_max: 4.0
+  ground_removal:
+    method: "grid_local_min"   # robust to sloped/uneven roads
+    cell: 1.0                  # m, XY cell size
+    delta: 0.25                # m, point is non-ground if z > cell_zmin + delta
+    z_global_max: 3.0          # m, drop overhanging vegetation above this
+
+clustering:
+  method: "dbscan"
+  eps: 1.0                     # larger eps tolerates sparse far points
+  min_samples: 4
+  min_cluster_points: 12       # higher than 8 kills tiny "nothing" noise blobs
+  max_cluster_points: 5000
+  bbox_method: "obb"           # PCA oriented bbox on XY (vs "aabb")
+  nms_iou: 0.4                 # detection-level NMS, 0 disables. Suppresses
+                               # duplicates when one car is split into two clusters.
+
+classification:
+  # OBB length is always >= width, so thresholds use min_length on the major axis
+  vehicle:
+    min_length: 1.5            # OBB major axis; tolerate partially observed cars
+    max_length: 8.5
+    min_width: 0.8
+    max_width: 3.5
+    min_height: 0.7
+    max_height: 4.5
+    min_points: 20
+  pedestrian:
+    min_length: 0.2
+    max_length: 1.2
+    min_width: 0.2
+    max_width: 1.2
+    min_height: 0.6
+    max_height: 2.3
+    min_points: 5
+
+# Static object removal (trees, poles, signs, persistent point-cloud noise)
+# Cell-based occupancy with 3x3 neighborhood vote: detections that linger in
+# (or jitter within) the same ~3 cells across history are flagged static.
+background_filter:
+  resolution: 1.0            # m per cell — larger cell + 3x3 vote covers jitter
+  history_frames: 100        # longer memory of where things "always sit"
+  static_threshold: 0.55     # occupied >=55% of frames in any of 3x3 cells -> static
+  warmup_frames: 25
+
+# Multi-object tracking (Kalman + Hungarian)
+tracking:
+  max_age: 10                # remove track after N consecutive misses
+  min_hits: 4                # confirm track after N matched frames
+  min_track_age: 6           # persistence: must exist >= N frames overall before publishing
+  distance_threshold: 3.0    # max centroid distance for association (m)
+  process_noise_pos: 0.5
+  process_noise_vel: 1.0
+  measurement_noise: 0.3
+  max_trajectory_length: 100 # keep last N positions for trail display
+  # OBB size/yaw EMA — stops bboxes shrinking when a single frame's cluster
+  # is poor (few points). Detections with < size_ema_min_points contribute
+  # almost nothing to the smoothed size.
+  size_ema_alpha: 0.25       # base EMA mix at full confidence
+  size_ema_min_points: 15    # det.num_points needed to reach full confidence
+  # Speed-based static suppression — drops confirmed tracks that don't move.
+  # Real cars/peds are >= 0.5 m/s; persistent noise hovers below this.
+  min_track_speed: 0.4       # m/s; set to 0 to disable
+  speed_window: 5            # frames over which to compute median XY speed
+  # Track-level NMS: if two published tracks have BEV IoU >= nms_iou, drop
+  # the less-mature one. Fixes re-id duplicates lingering for max_age frames.
+  nms_iou: 0.3
+
+visualization:
+  publish_raw_cloud: true
+  # If true, also publish per-frame detection bboxes alongside the smoothed
+  # track bboxes. Off by default because the two layers visually overlap and
+  # the per-frame ones jitter.
+  publish_detection_markers: false
+  roi_marker_color: [0.0, 1.0, 1.0, 0.8]     # RGBA cyan
+  vehicle_color: [0.0, 1.0, 0.0, 0.6]         # green
+  pedestrian_color: [1.0, 1.0, 0.0, 0.6]      # yellow
+  unknown_color: [0.5, 0.5, 0.5, 0.4]         # gray

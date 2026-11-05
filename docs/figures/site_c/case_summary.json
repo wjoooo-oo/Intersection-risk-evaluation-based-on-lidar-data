@@ -1,0 +1,25 @@
+{
+  "site_id": "site_c",
+  "site_type": "railroad_crossing_corridor",
+  "duration_min": 30,
+  "ttc": {
+    "n_pairs_positive": 1380,
+    "n_critical_le_2s": 309,
+    "critical_rate": 0.2239,
+    "range_s": [
+      0.2,
+      14.96
+    ],
+    "mean_s": 4.8
+  },
+  "pet": {
+    "n_pairs": 91,
+    "n_critical_le_2s": 12,
+    "critical_rate": 0.132,
+    "range_s": [
+      0.3,
+      9.5
+    ],
+    "mean_s": 4.01
+  }
+}

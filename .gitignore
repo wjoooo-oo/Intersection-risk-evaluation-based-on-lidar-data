@@ -1,0 +1,42 @@
+# Build / ROS
+build/
+install/
+log/
+**/__pycache__/
+*.pyc
+*.egg-info/
+.vscode/
+.idea/
+
+# Raw sensor data & bags (do not publish)
+*.bag
+*.db3
+*.mcap
+bags/
+data/bags/
+*.pcd
+*.bin
+
+# Large model weights / training artifacts
+*.pth
+*.pt
+*.ckpt
+checkpoints/
+training_results/
+testing_ressults/
+PVRCNN_*/
+third_party/
+
+# Runtime outputs (keep docs/figures sample only)
+conflict_analysis/output/
+!docs/figures/
+
+# Secrets / local paths
+.env
+*.pem
+mount_*.sh
+*_mount/
+
+# OS
+.DS_Store
+Thumbs.db
